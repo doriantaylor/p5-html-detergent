@@ -12,6 +12,14 @@ use XML::LibXML  ();
 use XML::LibXSLT ();
 use XML::LibXML::LazyBuilder qw(DOM E);
 
+use HTML::Detergent::Config;
+
+has config => (
+    is       => 'ro',
+    isa      => 'HTML::Detergent::Config',
+    required => 1,
+);
+
 has parser => (
     is      => 'ro',
     isa     => 'HTML::HTML5::Parser',
@@ -150,6 +158,11 @@ processor. See L<XML::LibXML::InputCallback> for details.
 =cut
 
 around BUILDARGS => sub {
+    my $orig  = shift;
+    my $class = shift;
+
+    my %p = ref $_[0] ? %{$_[0]} : @_;
+    $class->$orig(config => \%p);
 };
 
 sub BUILD {

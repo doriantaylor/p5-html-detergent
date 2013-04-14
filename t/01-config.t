@@ -25,5 +25,8 @@ is_deeply([$cfg->match_sequence], [qw(/foo /bar /bitz)],
 #require Data::Dumper;
 #diag(Data::Dumper::Dumper($cfg->links));
 
+# the single value should be coerced into an array ref
 is_deeply($cfg->links,
           { %links, 'dct:author' => ['John Q. Winning'] }, 'links match');
+
+# by induction the meta tags should work too

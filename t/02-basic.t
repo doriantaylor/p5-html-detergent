@@ -10,6 +10,12 @@ my $scrubber = HTML::Detergent->new(
     match => [
         [q{//html:div[@id='col2']}, 't/data/iai.xsl'],
     ],
+    link => {
+        contents => '/contents'
+    },
+    meta => {
+        author => 'Your Mom',
+    }
 );
 
 isa_ok($scrubber, 'HTML::Detergent');

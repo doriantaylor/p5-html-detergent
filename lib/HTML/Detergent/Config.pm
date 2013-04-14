@@ -104,6 +104,7 @@ has links => (
     is       => 'ro',
     isa      => Metadata,
     default  => sub { {} },
+    traits   => ['Hash'],
 #    lazy     => 1,
     coerce   => 1,
     init_arg => 'link',
@@ -131,9 +132,11 @@ has metadata => (
     is       => 'ro',
     isa      => Metadata,
     default  => sub { {} },
+    traits   => ['Hash'],
 #    lazy     => 1,
     coerce   => 1,
     init_arg => 'meta',
+    
 );
 
 =head2 callback

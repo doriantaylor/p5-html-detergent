@@ -211,6 +211,7 @@ sub process {
         Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
     }
 
+    my $doc;
     for my $xpath ($self->config->match_sequence) {
         #warn $xpath;
 
@@ -222,22 +223,51 @@ sub process {
 
         if (my $uri = $self->config->stylesheet($xpath)) {
             #warn $uri;
-            return $SHEET{$uri}->transform($input);
+            $doc = $SHEET{$uri}->transform($input);
         }
         else {
             my @head = map { $_->cloneNode(1) }
                 $XPC->findnodes('/html:html/html:head/*', $input);
 
-            my @body;
-            my $doc = DOM E html => { xmlns => 'http://www.w3.org/1999/xhtml' },
+            $doc = DOM E html => { xmlns => 'http://www.w3.org/1999/xhtml' },
                 (E head => {}, @head), (E body => {}, @body);
+        }
 
-            return $doc;
+        last if $doc;
+    }
+
+    return $input unless $doc;
+
+    # don't do this if not an HTML doc
+    if (my ($head) = $XPC->findnodes('/html:html/html:head', $doc)) {
+        my $links = $self->config->links;
+
+        for my $k (keys %$links) {
+            warn $k;
+            for my $v (@{$links->{$k}}) {
+                # XXX abridge this
+                my $link = $doc->createElementNS
+                    ('http://www.w3.org/1999/xhtml', 'link');
+                $link->setAttribute(rel  => $k);
+                $link->setAttribute(href => $v);
+                $head->appendChild($link);
+            }
+        }
+
+        my $meta  = $self->config->metadata;
+        for my $k (keys %$meta) {
+            for my $v (@{$meta->{$k}}) {
+                # XXX abridge this
+                my $meta = $doc->createElementNS
+                    ('http://www.w3.org/1999/xhtml', 'meta');
+                $meta->setAttribute(name    => $k);
+                $meta->setAttribute(content => $v);
+                $head->appendChild($meta);
+            }
         }
     }
 
-    # otherwise:
-    return $input;
+    $doc;
 }
 
 

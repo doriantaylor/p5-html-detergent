@@ -12,7 +12,7 @@ use warnings FATAL => 'all';
 use Moose;
 use namespace::autoclean;
 
-use MooseX::Types -declare => [qw(PathMap PathList Metadata ICB)];
+use MooseX::Types -declare => [qw(PathMap PathList Metadata ICB Config)];
 
 use MooseX::Types::Moose qw(Undef Str ArrayRef HashRef);
 
@@ -41,15 +41,17 @@ coerce PathMap, from ArrayRef, via {
     $x;
 };
 
-has match => (
+has _match_map => (
     is       => 'ro',
     isa      => PathMap,
     required => 1,
     traits   => ['Hash'],
     default  => sub { { } },
     coerce   => 1,
+    init_arg => 'match',
     handles  => {
-        stylesheet => 'get',
+        stylesheet  => 'get',
+        stylesheets => 'values',
     },
 );
 
@@ -158,6 +160,10 @@ has callback => (
     is  => 'ro',
     isa => ICB,
 );
+
+class_type Config, { class => __PACKAGE__ };
+coerce Config, from HashRef,
+    via { HTML::Detergent::Config->new(shift) };
 
 around BUILDARGS => sub {
     my $orig  = shift;

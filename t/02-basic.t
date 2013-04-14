@@ -6,9 +6,17 @@ plan tests => 3;
 
 use_ok('HTML::Detergent');
 
-my $scrubber = HTML::Detergent->new(match => [q{//html:div[@class='col2']/}]);
+my $scrubber = HTML::Detergent->new(
+    match => [
+        [q{//html:div[@id='col2']}, 't/data/iai.xsl'],
+    ],
+);
 
 isa_ok($scrubber, 'HTML::Detergent');
+
+diag(my ($first) = $scrubber->config->match_sequence);
+
+diag($scrubber->config->stylesheet($first));
 
 open my $fh, 't/data/about.html' or die $!;
 
@@ -20,7 +28,7 @@ ok(my $doc = $scrubber->process($content), 'scrubber processes document');
 
 #ok($doc = $scrubber->process($content), 'scrubber processes document');
 
-require Benchmark;
-Benchmark::timethis(100, sub { $scrubber->process($content) });
+#require Benchmark;
+#Benchmark::timethis(100, sub { $scrubber->process($content) });
 
-#diag($doc->toString(1));
+diag($doc->toString(1));

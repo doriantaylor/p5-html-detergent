@@ -12,11 +12,12 @@ use XML::LibXML  ();
 use XML::LibXSLT ();
 use XML::LibXML::LazyBuilder qw(DOM E);
 
-use HTML::Detergent::Config;
+use HTML::Detergent::Config qw(Config);
 
 has config => (
     is       => 'ro',
-    isa      => 'HTML::Detergent::Config',
+    isa      => Config,
+    coerce   => 1,
     required => 1,
 );
 
@@ -165,8 +166,20 @@ around BUILDARGS => sub {
     $class->$orig(config => \%p);
 };
 
+my %SHEET;
+
 sub BUILD {
+    my $self = shift;
+
+    my $xslt = XML::LibXSLT->new;
+    my $icb = $self->config->callback;
+    $xslt->input_callbacks($icb) if $icb;
+
     # cache stylesheets
+    for my $uri ($self->config->stylesheets) {
+        my $sheet = $xslt->parse_stylesheet_file($uri);
+        $SHEET{$uri} ||= $sheet;
+    }
 }
 
 =head2 process $INPUT [, $URI, $CONFIG ]
@@ -198,13 +211,33 @@ sub process {
         Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
     }
 
-    my @head = map { $_->cloneNode(1) }
-        $XPC->findnodes('/html:html/html:head/*', $input);
+    for my $xpath ($self->config->match_sequence) {
+        #warn $xpath;
 
-    my @body;
+        #warn substr($input->toString, 0, 100);
 
-    my $doc = DOM E html => { xmlns => 'http://www.w3.org/1999/xhtml' },
-        (E head => {}, @head), (E body => {}, @body);
+        my @body = $XPC->findnodes($xpath, $input);
+        #warn scalar @body;
+        @body or next;
+
+        if (my $uri = $self->config->stylesheet($xpath)) {
+            #warn $uri;
+            return $SHEET{$uri}->transform($input);
+        }
+        else {
+            my @head = map { $_->cloneNode(1) }
+                $XPC->findnodes('/html:html/html:head/*', $input);
+
+            my @body;
+            my $doc = DOM E html => { xmlns => 'http://www.w3.org/1999/xhtml' },
+                (E head => {}, @head), (E body => {}, @body);
+
+            return $doc;
+        }
+    }
+
+    # otherwise:
+    return $input;
 }
 
 

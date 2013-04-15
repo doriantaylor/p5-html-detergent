@@ -304,7 +304,7 @@ sub process {
             # make sure it's a URI object
             $uri = URI->new($uri) unless ref $uri;
 
-            # 
+            # start in this position
             my $olduri = $uri;
 
             # try to find a <base> element
@@ -314,13 +314,13 @@ sub process {
                 $olduri = URI->new($base->getAttribute('href'));
             }
             else {
-                # make a new one
+                # make a new one if none found
                 $base = $doc->createElementNS
                     ('http://www.w3.org/1999/xhtml', 'base');
                 $head->appendChild($base);
             }
 
-            # set base to new URI
+            # set base to the new URI
             $base->setAttribute(href => $uri);
 
             # now traverse the document looking for URI-like attributes
@@ -328,10 +328,10 @@ sub process {
                 my $t = $LINKS{$node->localName};
                 for my $u (keys %$t) {
                     if (defined (my $a = $node->getAttribute($u))) {
-                        #warn "derp $a";
+                        # absolute against the old uri, relative to
+                        # the new one
                         $a = URI->new_abs($a, $olduri);
                         $a = $a->rel($uri);
-                        #warn "derp $a";
                         $node->setAttribute($u, $a);
                     }
                 }

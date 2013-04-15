@@ -18,11 +18,15 @@ use MooseX::Types::Moose qw(Undef Str ArrayRef HashRef);
 
 use XML::LibXML;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
-=head1 ACCESSORS
+=head1 METHODS
 
-=head2 match
+=head2 new
+
+=over 4
+
+=item match
 
 This is an ARRAY reference of XPath expressions to try against the
 document, in order of preference. Entries optionally may be
@@ -50,10 +54,17 @@ has _match_map => (
     coerce   => 1,
     init_arg => 'match',
     handles  => {
-        stylesheet  => 'get',
+# this whines when the key is undef
+#        stylesheet  => 'get',
         stylesheets => 'values',
     },
 );
+
+sub stylesheet {
+    my ($self, $key) = @_;
+    return unless defined $key;
+    $self->_match_map->{$key};
+}
 
 subtype PathList, as ArrayRef[Str];
 coerce PathList, from ArrayRef[Str|ArrayRef],
@@ -71,7 +82,7 @@ has _match_sequence => (
     },
 );
 
-=head2 link
+=item link
 
 This is a HASH reference where the keys correspond to C<rel>
 attributes and the values to C<href> attributes of C<E<lt>linkE<gt>>
@@ -110,7 +121,7 @@ has links => (
     init_arg => 'link',
 );
 
-=head2 meta
+=item meta
 
 This is a HASH reference where the keys correspond to C<name>
 attributes and the values to C<content> attributes of
@@ -139,7 +150,7 @@ has metadata => (
     
 );
 
-=head2 callback
+=item callback
 
 These callbacks will be passed into the internal L<XML::LibXSLT>
 processor. See L<XML::LibXML::InputCallback> for details.
@@ -149,6 +160,8 @@ processor. See L<XML::LibXML::InputCallback> for details.
     # or
 
     callback => $icb, # isa XML::LibXML::InputCallback
+
+=back
 
 =cut
 
@@ -177,6 +190,16 @@ around BUILDARGS => sub {
 
     $class->$orig(%p);
 };
+
+=head2 stylesheets
+
+List all stylesheets associated with an XPath expression.
+
+=head2 stylesheet
+
+Retrieve a stylesheet for a given XPath expression.
+
+=cut
 
 __PACKAGE__->meta->make_immutable;
 no Moose;

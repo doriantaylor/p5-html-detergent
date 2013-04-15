@@ -20,7 +20,7 @@ my $scrubber = HTML::Detergent->new(
 
 isa_ok($scrubber, 'HTML::Detergent');
 
-diag(my ($first) = $scrubber->config->match_sequence);
+#diag(my ($first) = $scrubber->config->match_sequence);
 
 diag($scrubber->config->stylesheet($first));
 
@@ -28,13 +28,12 @@ open my $fh, 't/data/about.html' or die $!;
 
 my $content = do { local $/; <$fh> };
 
-ok(my $doc = $scrubber->process($content), 'scrubber processes document');
-
-#diag('yo');
+ok(my $doc = $scrubber->process($content, 'http://iainstitute.org/about/'),
+   'scrubber processes document');
 
 #ok($doc = $scrubber->process($content), 'scrubber processes document');
 
 #require Benchmark;
 #Benchmark::timethis(100, sub { $scrubber->process($content) });
 
-diag($doc->toString(1));
+#diag($doc->toString(1));

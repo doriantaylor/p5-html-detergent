@@ -8,6 +8,7 @@ use Moose;
 use namespace::autoclean;
 
 use Scalar::Util ();
+use URI ();
 use XML::LibXML  ();
 use XML::LibXSLT ();
 use XML::LibXML::LazyBuilder qw(DOM E);
@@ -31,17 +32,49 @@ has parser => (
 my $XPC = XML::LibXML::XPathContext->new;
 $XPC->registerNs('html' => 'http://www.w3.org/1999/xhtml');
 
+# XXX huh
+my %LINKS = (
+    head       => { profile  => 1, },
+    script     => { src      => 1, },
+    a          => { href     => 1, },
+    area       => { href     => 1, },
+    link       => { href     => 1, },
+    form       => { action   => 1, },
+    blockquote => { cite     => 1, },
+    q          => { cite     => 1, },
+    ins        => { cite     => 1, },
+    del        => { cite     => 1, },
+    frame      => { src      => 1,
+                    longdesc => 1, },
+    iframe     => { src      => 1,
+                    longdesc => 1, },
+    img        => { src      => 1,
+                    longdesc => 1,
+                    usemap   => 1, },
+    object     => { data     => 1,
+                    classid  => 1,
+                    codebase => 1,
+                    usemap   => 1, },
+    input      => { src      => 1,
+                    usemap   => 1, },
+);
+
+# turn aforementioned into a single xpath statement
+my $LINKXP = join('|', map {
+    sprintf('//html:%s[%s]', $_, join('|', map { "\@$_" } keys %{$LINKS{$_}} ))
+} keys %LINKS);
+
 =head1 NAME
 
 HTML::Detergent - Clean the gunk off an HTML document
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -96,7 +129,7 @@ be converted from XML into HTML using L<XML::LibXML::Document/toStringHTML>.
 =head2 new %CONFIG | \%CONFIG | $CONFIG
 
 Initialize the processor, either with a list of configuration
-parameters, a HASH reference thereof, or an HTML::Detergent::Config
+parameters, a HASH reference thereof, or an L<HTML::Detergent::Config>
 object. Below are the valid parameters:
 
 =over 4
@@ -241,9 +274,7 @@ sub process {
     # don't do this if not an HTML doc
     if (my ($head) = $XPC->findnodes('/html:html/html:head', $doc)) {
         my $links = $self->config->links;
-
         for my $k (keys %$links) {
-            warn $k;
             for my $v (@{$links->{$k}}) {
                 # XXX abridge this
                 my $link = $doc->createElementNS
@@ -263,6 +294,47 @@ sub process {
                 $meta->setAttribute(name    => $k);
                 $meta->setAttribute(content => $v);
                 $head->appendChild($meta);
+            }
+        }
+
+        # XXX should this even be part of it?
+
+        # do base set/url rewrite
+        if (defined $uri) {
+            # make sure it's a URI object
+            $uri = URI->new($uri) unless ref $uri;
+
+            # 
+            my $olduri = $uri;
+
+            # try to find a <base> element
+            my ($base) = $XPC->findnodes('html:base[1]', $head);
+            if ($base) {
+                # rewrite the old base
+                $olduri = URI->new($base->getAttribute('href'));
+            }
+            else {
+                # make a new one
+                $base = $doc->createElementNS
+                    ('http://www.w3.org/1999/xhtml', 'base');
+                $head->appendChild($base);
+            }
+
+            # set base to new URI
+            $base->setAttribute(href => $uri);
+
+            # now traverse the document looking for URI-like attributes
+            for my $node ($XPC->findnodes($LINKXP, $doc)) {
+                my $t = $LINKS{$node->localName};
+                for my $u (keys %$t) {
+                    if (defined (my $a = $node->getAttribute($u))) {
+                        #warn "derp $a";
+                        $a = URI->new_abs($a, $olduri);
+                        $a = $a->rel($uri);
+                        #warn "derp $a";
+                        $node->setAttribute($u, $a);
+                    }
+                }
             }
         }
     }
@@ -316,6 +388,8 @@ L<http://search.cpan.org/dist/HTML-Detergent/>
 =over 4
 
 =item L<XML::LibXML>
+
+=item L<XML::LibXSLT>
 
 =item L<HTML::HTML5::Parser>
 

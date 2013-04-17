@@ -7,6 +7,7 @@ license  'apache';
 
 requires 'Moose';
 requires 'MooseX::Types';
+requires 'namespace::autoclean';
 requires 'XML::LibXML';
 requires 'XML::LibXSLT';
 requires 'XML::LibXML::LazyBuilder';

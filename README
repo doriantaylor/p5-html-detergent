@@ -2,7 +2,7 @@ NAME
     HTML::Detergent - Clean the gunk off an HTML document
 
 VERSION
-    Version 0.01
+    Version 0.03
 
 SYNOPSIS
         use HTML::Detergent;
@@ -144,6 +144,7 @@ SUPPORT
 
 SEE ALSO
     XML::LibXML
+    XML::LibXSLT
     HTML::HTML5::Parser
 
 LICENSE AND COPYRIGHT

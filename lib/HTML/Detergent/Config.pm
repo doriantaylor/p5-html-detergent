@@ -46,9 +46,10 @@ coerce PathMap, from ArrayRef, via {
 };
 
 has _match_map => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => PathMap,
-    required => 1,
+    lazy     => 1,
+#    required => 1,
     traits   => ['Hash'],
     default  => sub { { } },
     coerce   => 1,
@@ -56,29 +57,50 @@ has _match_map => (
     handles  => {
 # this whines when the key is undef
 #        stylesheet  => 'get',
-        stylesheets => 'values',
+# wait, the value can be undef too
+#        stylesheets => 'values',
     },
 );
 
 sub stylesheet {
-    my ($self, $key) = @_;
-    return unless defined $key;
-    $self->_match_map->{$key};
+    my ($self, $xpath) = @_;
+    return unless defined $xpath;
+    $self->_match_map->{$xpath};
+}
+
+sub stylesheets {
+    my $self = shift;
+    grep { defined $_ } values %{$self->_match_map};
+}
+
+sub add_match {
+    my ($self, $xpath, $xslt) = @_;
+    my ($map, $seq) = ($self->_match_map, $self->_match_sequence);
+    if (exists $map->{$xpath}) {
+        $map->{$xpath} = $xslt if defined $xslt;
+    }
+    else {
+        $map->{$xpath} = $xslt;
+        push @$seq, $xpath;
+    }
+    1;
 }
 
 subtype PathList, as ArrayRef[Str];
 coerce PathList, from ArrayRef[Str|ArrayRef],
     via { [ map { ref $_ ? @{$_}[0] : $_ } @{$_[0]} ] };
+coerce PathList, from HashRef,
+    via { [ keys %{$_[0]} ] };
 
 has _match_sequence => (
-    is      => 'ro',
+    is      => 'rw',
     isa     => PathList,
-#    lazy    => 1,
+    lazy    => 1,
     traits  => ['Array'],
     default => sub { [ ] },
     coerce  => 1,
     handles => {
-        match_sequence => 'elements',
+        matches => 'elements',
     },
 );
 
@@ -112,11 +134,11 @@ coerce Metadata, from HashRef, via {
 };
 
 has links => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => Metadata,
     default  => sub { {} },
     traits   => ['Hash'],
-#    lazy     => 1,
+    lazy     => 1,
     coerce   => 1,
     init_arg => 'link',
 );
@@ -140,14 +162,13 @@ result of the same form.
 =cut
 
 has metadata => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => Metadata,
     default  => sub { {} },
     traits   => ['Hash'],
-#    lazy     => 1,
+    lazy     => 1,
     coerce   => 1,
     init_arg => 'meta',
-    
 );
 
 =item callback
@@ -173,8 +194,10 @@ coerce ICB, from ArrayRef, via {
 };
 
 has callback => (
-    is  => 'ro',
-    isa => ICB,
+    is       => 'rw',
+    isa      => ICB,
+    lazy     => 1,
+    default  => sub { XML::LibXML::InputCallback->new },
 );
 
 class_type Config, { class => __PACKAGE__ };
@@ -186,7 +209,7 @@ around BUILDARGS => sub {
     my $class = shift;
 
     my %p = ref $_[0] ? %{$_[0]} : @_;
-    $p{_match_sequence} = $p{match};
+    $p{_match_sequence} = $p{match} || [];
 
     $class->$orig(%p);
 };
@@ -200,6 +223,20 @@ List all stylesheets associated with an XPath expression.
 Retrieve a stylesheet for a given XPath expression.
 
 =cut
+
+=head2 merge
+
+=cut
+
+sub merge {
+    my ($self, $left, $right) = @_;
+    #    my ($
+
+    #    $class->new(\%
+
+    # just return myself for now
+    $left;
+}
 
 __PACKAGE__->meta->make_immutable;
 no Moose;

@@ -29,8 +29,17 @@ has parser => (
     lazy    => 1,
 );
 
-my $XPC = XML::LibXML::XPathContext->new;
-$XPC->registerNs('html' => 'http://www.w3.org/1999/xhtml');
+has xpc => (
+    is      => 'ro',
+    isa     => 'XML::LibXML::XPathContext',
+    default => sub {
+        my $xpc = XML::LibXML::XPathContext->new;
+        $xpc->registerNs('html' => 'http://www.w3.org/1999/xhtml');
+        return $xpc;
+    },
+);
+
+
 
 # XXX huh
 my %LINKS = (
@@ -195,7 +204,9 @@ around BUILDARGS => sub {
     my $orig  = shift;
     my $class = shift;
 
-    my %p = ref $_[0] ? %{$_[0]} : @_;
+    return $class->$orig(config => $_[0]) if ref $_[0];
+
+    my %p = @_;
     $class->$orig(config => \%p);
 };
 
@@ -244,13 +255,14 @@ sub process {
         Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
     }
 
+    my $xpc = $self->xpc;
     my $doc;
-    for my $xpath ($self->config->match_sequence) {
+    for my $xpath ($self->config->matches) {
         #warn $xpath;
 
         #warn substr($input->toString, 0, 100);
 
-        my @body = $XPC->findnodes($xpath, $input);
+        my @body = $xpc->findnodes($xpath, $input);
         #warn scalar @body;
         @body or next;
 
@@ -260,7 +272,9 @@ sub process {
         }
         else {
             my @head = map { $_->cloneNode(1) }
-                $XPC->findnodes('/html:html/html:head/*', $input);
+                $xpc->findnodes('/html:html/html:head/*', $input);
+
+            @body = map { $_->cloneNode(1) } @body;
 
             $doc = DOM E html => { xmlns => 'http://www.w3.org/1999/xhtml' },
                 (E head => {}, @head), (E body => {}, @body);
@@ -272,7 +286,7 @@ sub process {
     return $input unless $doc;
 
     # don't do this if not an HTML doc
-    if (my ($head) = $XPC->findnodes('/html:html/html:head', $doc)) {
+    if (my ($head) = $xpc->findnodes('/html:html/html:head', $doc)) {
         my $links = $self->config->links;
         for my $k (keys %$links) {
             for my $v (@{$links->{$k}}) {
@@ -308,7 +322,7 @@ sub process {
             my $olduri = $uri;
 
             # try to find a <base> element
-            my ($base) = $XPC->findnodes('html:base[1]', $head);
+            my ($base) = $xpc->findnodes('html:base[1]', $head);
             if ($base) {
                 # rewrite the old base
                 $olduri = URI->new($base->getAttribute('href'));
@@ -324,7 +338,7 @@ sub process {
             $base->setAttribute(href => $uri);
 
             # now traverse the document looking for URI-like attributes
-            for my $node ($XPC->findnodes($LINKXP, $doc)) {
+            for my $node ($xpc->findnodes($LINKXP, $doc)) {
                 my $t = $LINKS{$node->localName};
                 for my $u (keys %$t) {
                     if (defined (my $a = $node->getAttribute($u))) {

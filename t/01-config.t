@@ -19,8 +19,7 @@ my $cfg = HTML::Detergent::Config->new(
 
 is($cfg->stylesheet('/bitz'), '/stuff.xsl', 'map coercion works');
 
-is_deeply([$cfg->match_sequence], [qw(/foo /bar /bitz)],
-          'match_sequence matches');
+is_deeply([$cfg->matches], [qw(/foo /bar /bitz)], '"matches" matches');
 
 #require Data::Dumper;
 #diag(Data::Dumper::Dumper($cfg->links));

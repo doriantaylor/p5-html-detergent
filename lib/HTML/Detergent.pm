@@ -8,7 +8,7 @@ use Moose;
 use namespace::autoclean;
 
 use Scalar::Util ();
-use URI ();
+use URI          ();
 use XML::LibXML  ();
 use XML::LibXSLT ();
 use XML::LibXML::LazyBuilder qw(DOM E);
@@ -22,7 +22,14 @@ has config => (
     required => 1,
 );
 
-has parser => (
+has xml_parser => (
+    is      => 'ro',
+    isa     => 'XML::LibXML',
+    default => sub { XML::LibXML->new(recover => 2) },
+    lazy    => 1,
+);
+
+has html_parser => (
     is      => 'ro',
     isa     => 'HTML::HTML5::Parser',
     default => sub { require HTML::HTML5::Parser; HTML::HTML5::Parser->new },
@@ -79,11 +86,11 @@ HTML::Detergent - Clean the gunk off an HTML document
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -221,8 +228,8 @@ sub BUILD {
 
     # cache stylesheets
     for my $uri ($self->config->stylesheets) {
-        my $sheet = $xslt->parse_stylesheet_file($uri);
-        $SHEET{$uri} ||= $sheet;
+        $SHEET{$uri} ||= $xslt->parse_stylesheet_file($uri);
+        #$SHEET{$uri} ||= $sheet;
     }
 }
 
@@ -239,7 +246,7 @@ sub process {
 
     if (my $ref = ref $input) {
         if (Scalar::Util::reftype($input) eq 'GLOB') {
-            $input = eval { $self->parser->parse_fh($input) };
+            $input = eval { $self->html_parser->parse_fh($input) };
             Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
         }
         elsif (Scalar::Util::blessed($input)
@@ -251,7 +258,7 @@ sub process {
         }
     }
     else {
-        $input = eval { $self->parser->parse_string($input) };
+        $input = eval { $self->html_parser->parse_string($input) };
         Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
     }
 

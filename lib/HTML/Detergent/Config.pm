@@ -143,6 +143,12 @@ has links => (
     init_arg => 'link',
 );
 
+sub add_link {
+    my ($self, $rel, $href) = @_;
+    my $links = $self->links;
+    push @{$links->{$rel} ||= []}, $href;
+}
+
 =item meta
 
 This is a HASH reference where the keys correspond to C<name>
@@ -170,6 +176,12 @@ has metadata => (
     coerce   => 1,
     init_arg => 'meta',
 );
+
+sub add_meta {
+    my ($self, $name, $content) = @_;
+    my $meta = $self->metadata;
+    push @{$meta->{$name} ||= []}, $content;
+}
 
 =item callback
 

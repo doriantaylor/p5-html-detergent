@@ -5,6 +5,7 @@ all_from 'lib/HTML/Detergent.pm';
 author   q{Dorian Taylor <dorian@cpan.org>};
 license  'apache';
 
+requires 'mod_perl2';
 requires 'Moose';
 requires 'MooseX::Types';
 requires 'namespace::autoclean';

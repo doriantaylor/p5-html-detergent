@@ -29,12 +29,12 @@ has xml_parser => (
     lazy    => 1,
 );
 
-has html_parser => (
-    is      => 'ro',
-    isa     => 'HTML::HTML5::Parser',
-    default => sub { require HTML::HTML5::Parser; HTML::HTML5::Parser->new },
-    lazy    => 1,
-);
+# has html_parser => (
+#     is      => 'ro',
+#     isa     => 'HTML::HTML5::Parser',
+#     default => sub { require HTML::HTML5::Parser; HTML::HTML5::Parser->new },
+#     lazy    => 1,
+# );
 
 has xpc => (
     is      => 'ro',
@@ -86,11 +86,11 @@ HTML::Detergent - Clean the gunk off an HTML document
 
 =head1 VERSION
 
-Version 0.05
+Version 0.06
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 SYNOPSIS
 
@@ -246,7 +246,9 @@ sub process {
 
     if (my $ref = ref $input) {
         if (Scalar::Util::reftype($input) eq 'GLOB') {
-            $input = eval { $self->html_parser->parse_fh($input) };
+            require HTML::HTML5::Parser;
+            my $p = HTML::HTML5::Parser->new(no_cache => 1);
+            $input = eval { $p->parse_fh($input) };
             Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
         }
         elsif (Scalar::Util::blessed($input)
@@ -258,7 +260,9 @@ sub process {
         }
     }
     else {
-        $input = eval { $self->html_parser->parse_string($input) };
+        require HTML::HTML5::Parser;
+        my $p = HTML::HTML5::Parser->new(no_cache => 1);
+        $input = eval { $p->parse_string($input) };
         Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
     }
 
@@ -294,6 +298,7 @@ sub process {
 
     # don't do this if not an HTML doc
     if (my ($head) = $xpc->findnodes('/html:html/html:head', $doc)) {
+        my ($firstl) = $xpc->findnodes('html:link', $head);
         my $links = $self->config->links;
         for my $k (keys %$links) {
             for my $v (@{$links->{$k}}) {
@@ -302,11 +307,17 @@ sub process {
                     ('http://www.w3.org/1999/xhtml', 'link');
                 $link->setAttribute(rel  => $k);
                 $link->setAttribute(href => $v);
-                $head->appendChild($link);
+                if ($firstl) {
+                    $head->insertBefore($link, $firstl);
+                }
+                else {
+                    $head->appendChild($link);
+                }
             }
         }
 
         my $meta  = $self->config->metadata;
+        my ($firstm) = $xpc->findnodes('html:link', $head);
         for my $k (keys %$meta) {
             for my $v (@{$meta->{$k}}) {
                 # XXX abridge this
@@ -314,7 +325,12 @@ sub process {
                     ('http://www.w3.org/1999/xhtml', 'meta');
                 $meta->setAttribute(name    => $k);
                 $meta->setAttribute(content => $v);
-                $head->appendChild($meta);
+                if ($firstm) {
+                    $head->insertBefore($meta, $firstm);
+                }
+                else {
+                    $head->appendChild($meta);
+                }
             }
         }
 

@@ -62,16 +62,28 @@ has _match_map => (
     },
 );
 
+=item stylesheet
+
+=cut
+
 sub stylesheet {
     my ($self, $xpath) = @_;
     return unless defined $xpath;
     $self->_match_map->{$xpath};
 }
 
+=item stylesheets
+
+=cut
+
 sub stylesheets {
     my $self = shift;
     grep { defined $_ } values %{$self->_match_map};
 }
+
+=item add_match
+
+=cut
 
 sub add_match {
     my ($self, $xpath, $xslt) = @_;
@@ -143,6 +155,10 @@ has links => (
     init_arg => 'link',
 );
 
+=item add_link
+
+=cut
+
 sub add_link {
     my ($self, $rel, $href) = @_;
     my $links = $self->links;
@@ -176,6 +192,10 @@ has metadata => (
     coerce   => 1,
     init_arg => 'meta',
 );
+
+=item add_meta
+
+=cut
 
 sub add_meta {
     my ($self, $name, $content) = @_;

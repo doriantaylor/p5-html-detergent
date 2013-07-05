@@ -46,8 +46,6 @@ has xpc => (
     },
 );
 
-
-
 # XXX huh
 my %LINKS = (
     head       => { profile  => 1, },
@@ -86,11 +84,11 @@ HTML::Detergent - Clean the gunk off an HTML document
 
 =head1 VERSION
 
-Version 0.06
+Version 0.07
 
 =cut
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 =head1 SYNOPSIS
 
@@ -320,7 +318,6 @@ sub process {
         my ($firstm) = $xpc->findnodes('html:link', $head);
         for my $k (keys %$meta) {
             for my $v (@{$meta->{$k}}) {
-                # XXX abridge this
                 my $meta = $doc->createElementNS
                     ('http://www.w3.org/1999/xhtml', 'meta');
                 $meta->setAttribute(name    => $k);
@@ -367,7 +364,13 @@ sub process {
                     if (defined (my $a = $node->getAttribute($u))) {
                         # absolute against the old uri, relative to
                         # the new one
-                        $a = URI->new_abs($a, $olduri);
+                        $a = URI->new_abs($a, $olduri)->canonical;
+                        # reset the scheme if necessary
+                        if ($a->scheme =~ /^https?/) {
+                            $a->scheme($uri->scheme)
+                                if ($a->authority eq $uri->authority
+                                    and $a->scheme ne $uri->scheme);
+                        }
                         $a = $a->rel($uri);
                         $node->setAttribute($u, $a);
                     }

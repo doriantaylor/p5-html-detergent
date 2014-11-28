@@ -18,22 +18,42 @@ my $scrubber = HTML::Detergent->new(
     }
 );
 
-isa_ok($scrubber, 'HTML::Detergent');
+
+#isa_ok($scrubber, 'HTML::Detergent');
 
 #diag(my ($first) = $scrubber->config->match_sequence);
 
-diag($scrubber->config->stylesheet($first));
+# diag($scrubber->config->stylesheet($first));
 
-open my $fh, 't/data/about.html' or die $!;
+# open my $fh, 't/data/about.html' or die $!;
 
-my $content = do { local $/; <$fh> };
+# my $content = do { local $/; <$fh> };
 
-ok(my $doc = $scrubber->process($content, 'http://iainstitute.org/about/'),
-   'scrubber processes document');
+# close $fh;
 
-#ok($doc = $scrubber->process($content), 'scrubber processes document');
+# ok(my $doc = $scrubber->process($content, 'http://iainstitute.org/about/'),
+#    'scrubber processes document');
 
-#require Benchmark;
-#Benchmark::timethis(100, sub { $scrubber->process($content) });
+require Benchmark;
+Benchmark::timethis(100, sub { $scrubber->process($content) });
 
 #diag($doc->toString(1));
+
+undef $scrubber;
+# undef $content;
+# undef $doc;
+
+require Devel::Gladiator;
+
+
+# my $all = Devel::Gladiator::walk_arena();
+
+# foreach my $sv ( @$all ) {
+#     print STDERR "live object: $sv\n";
+# }
+
+# undef $all;
+
+diag(Devel::Gladiator::arena_table());
+
+

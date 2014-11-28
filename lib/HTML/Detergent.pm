@@ -9,6 +9,7 @@ use namespace::autoclean;
 
 use Scalar::Util ();
 use URI          ();
+use URI::Escape  ();
 use XML::LibXML  ();
 use XML::LibXSLT ();
 use XML::LibXML::LazyBuilder qw(DOM E);
@@ -247,6 +248,7 @@ sub process {
             require HTML::HTML5::Parser;
             my $p = HTML::HTML5::Parser->new(no_cache => 1);
             $input = eval { $p->parse_fh($input) };
+            undef $p;
             Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
         }
         elsif (Scalar::Util::blessed($input)
@@ -261,6 +263,7 @@ sub process {
         require HTML::HTML5::Parser;
         my $p = HTML::HTML5::Parser->new(no_cache => 1);
         $input = eval { $p->parse_string($input) };
+        undef $p;
         Carp::croak("Failed to parse X(HT)ML input: $@") if $@;
     }
 
@@ -366,11 +369,14 @@ sub process {
                         # the new one
                         $a = URI->new_abs($a, $olduri)->canonical;
                         # reset the scheme if necessary
-                        if ($a->scheme =~ /^https?/) {
+                        if ($a->scheme =~ /^https?/i) {
                             $a->scheme($uri->scheme)
                                 if ($a->authority eq $uri->authority
                                     and $a->scheme ne $uri->scheme);
                         }
+                        # do this because something is freakin' mocking me
+                        $uri->query(URI::Escape::uri_escape($uri->query, '/'))
+                            if defined $uri->query;
                         $a = $a->rel($uri);
                         $node->setAttribute($u, $a);
                     }

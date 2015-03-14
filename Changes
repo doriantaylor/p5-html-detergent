@@ -1,5 +1,6 @@
 Revision history for HTML-Detergent
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.08    Fri Mar 13 09:59:49 PDT 2015
+        Fixed crash that happened when a <base href=""/> existed but
+        was blank, malformed, and/or did not contain an HTTP(S) URI
 

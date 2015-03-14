@@ -85,11 +85,11 @@ HTML::Detergent - Clean the gunk off an HTML document
 
 =head1 VERSION
 
-Version 0.07
+Version 0.08
 
 =cut
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 =head1 SYNOPSIS
 
@@ -348,7 +348,13 @@ sub process {
             my ($base) = $xpc->findnodes('html:base[1]', $head);
             if ($base) {
                 # rewrite the old base
-                $olduri = URI->new($base->getAttribute('href'));
+                my $href = $base->getAttribute('href') || '';
+                $href =~ s/^\s*(.*?)\s*$/$1/;
+                if ($href ne '') {
+                    $href = URI->new($href)->canonical;
+                    $olduri = $href if $href->scheme
+                        and $href->scheme =~ /https?/;
+                }
             }
             else {
                 # make a new one if none found
@@ -377,7 +383,7 @@ sub process {
                         # do this because something is freakin' mocking me
                         $uri->query(URI::Escape::uri_escape($uri->query, '/'))
                             if defined $uri->query;
-                        $a = $a->rel($uri);
+                        $a = $a->rel($olduri);
                         $node->setAttribute($u, $a);
                     }
                 }
